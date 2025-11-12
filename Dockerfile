@@ -1,5 +1,5 @@
 # ==========================================
-# 🧩 Keycloak Deployment Dockerfile
+# 🧩 Keycloak Deployment Dockerfile (Render)
 # ==========================================
 
 # Use a recent, official Keycloak image
@@ -8,20 +8,35 @@ FROM quay.io/keycloak/keycloak:23.0.7
 # Set working directory
 WORKDIR /opt/keycloak
 
-# Set static environment variables for running in a production/proxy environment.
-# Dynamic values like database credentials will be injected by Render.
+# ==========================================
+# ✅ Environment Configuration
+# ==========================================
+# These are safe defaults for running Keycloak behind Render’s HTTPS proxy
 ENV KC_HEALTH_ENABLED=true
 ENV KC_METRICS_ENABLED=true
 ENV KC_PROXY=edge
 ENV KC_DB=postgres
+ENV KC_DB_URL_HOST=${KC_DB_URL_HOST}
+ENV KC_DB_URL_DATABASE=${KC_DB_URL_DATABASE}
+ENV KC_DB_USERNAME=${KC_DB_USERNAME}
+ENV KC_DB_PASSWORD=${KC_DB_PASSWORD}
 
-# Expose the port Keycloak listens on.
-# This must match the KC_HTTP_PORT environment variable.
+# Required for Render (strict hostname fix)
+ENV KC_HOSTNAME=${KC_HOSTNAME}
+ENV KC_HOSTNAME_STRICT=false
+ENV KC_HOSTNAME_STRICT_HTTPS=false
+
+# Expose the HTTP port (matches KC_HTTP_PORT)
 EXPOSE 8080
 
-# Build an optimized Keycloak server image. This is a best practice for production.
+# ==========================================
+# ✅ Build optimized Keycloak image
+# ==========================================
 RUN /opt/keycloak/bin/kc.sh build
 
-# The command to run when the container starts.
-# It starts Keycloak in production mode, using the optimized build.
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start", "--optimized"]
+# ==========================================
+# ✅ Start Keycloak in production mode
+# ==========================================
+# The Render environment variable KC_HOSTNAME must be set to your public Render URL
+# Example: KC_HOSTNAME=my-keycloak.onrender.com
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start", "--optimized", "--hostname-strict=false", "--hostname-strict-https=false"]

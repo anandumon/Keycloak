@@ -1,0 +1,13 @@
+# Environment variables
+.env
+
+# IDE files
+.idea/
+*.iml
+
+# Build artifacts
+target/
+dist/
+
+# Log files
+*.log
