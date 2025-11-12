@@ -1,71 +1,33 @@
-# File: keycloak-render-project/render.yaml
-
-# This render.yaml defines the deployment of a standalone Keycloak server
-# and its dedicated PostgreSQL database on Render.
-
 services:
-  # -----------------
-  # The Keycloak Server
-  # -----------------
   - type: web
-    name: keycloak-server # The name for your Keycloak web service on Render
+    name: keycloak
     env: docker
-    # Use a stable, official Keycloak image from quay.io.
-    # Using ':latest' is fine for starting, but for production, consider pinning to a specific version (e.g., ':23.0.7').
-    image: quay.io/keycloak/keycloak:latest
-    # Command to start Keycloak in production mode and apply Render-specific configurations.
-    # --hostname: Crucial for correct redirect URIs. Render provides RENDER_EXTERNAL_HOSTNAME.
-    # --proxy=edge: Configures Keycloak to work behind Render's reverse proxy.
-    # --http-port=10000: Render services listen on port 10000 internally.
-    # --health-enabled=true: Enables health check endpoints for Render to monitor.
-    command: "start --optimized --hostname=${RENDER_EXTERNAL_HOSTNAME} --proxy=edge --http-port=10000 --health-enabled=true"
-    ports:
-      - 10000 # Keycloak listens on this internal port.
-
+    plan: starter
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /realms/master
+    autoDeploy: true
     envVars:
-      # --- Keycloak Admin User ---
-      # Render will generate a strong password for KEYCLOAK_ADMIN_PASSWORD.
-      # YOU MUST RETRIEVE THIS PASSWORD FROM YOUR RENDER DASHBOARD AFTER DEPLOYMENT!
-      - key: KEYCLOAK_ADMIN
-        value: admin
-      - key: KEYCLOAK_ADMIN_PASSWORD
-        generateValue: true
+      # --- Runtime Settings ---
+      # These are set here because they are not secrets.
 
-      # --- Database Connection ---
-      # These variables dynamically link Keycloak to the 'keycloak-db' service defined below.
-      # Keycloak reads these 'KC_*' variables on startup to configure its database connection.
-      - key: KC_DB
-        value: postgres
-      - key: KC_DB_URL
-        fromDatabase:
-          name: keycloak-db
-          property: connectionString
-      - key: KC_DB_USERNAME
-        fromDatabase:
-          name: keycloak-db
-          property: user
-      - key: KC_DB_PASSWORD
-        fromDatabase:
-          name: keycloak-db
-          property: password
-
-      # --- Other Keycloak Configurations ---
+      # 1. Hostname Configuration (This is the fix)
+      # Tells Keycloak its public URL. `${keycloak.url}` is a Render variable.
+      - key: KC_HOSTNAME
+        value: ${keycloak.url}
+      # Enforces that requests match the configured hostname. This is required when KC_PROXY=edge.
       - key: KC_HOSTNAME_STRICT
-        value: "false" # Set to false for easier initial setup behind a proxy.
-      - key: KC_HOSTNAME_STRICT_HTTPS
-        value: "false" # Set to false as Render handles external HTTPS.
-      - key: KC_HTTP_ENABLED
-        value: "true" # Allow HTTP internally for Render's network.
-      - key: KC_LOG_LEVEL
-        value: INFO
+        value: "true"
 
-  # -----------------
-  # The Keycloak Database (PostgreSQL)
-  # -----------------
-  - type: pserv
-    name: keycloak-db # A logical name for this database service.
-    plan: free # Choose your desired plan (free, starter, standard, etc.).
-    # This is the actual name of the database that will be created inside the PostgreSQL instance.
-    databaseName: keycloak_db
-    # Allows other services in your Render account to connect. An empty list means all are allowed.
-    ipAllowList: []
+      # 2. Proxy Configuration
+      # Tells Keycloak it's behind Render's reverse proxy.
+      - key: KC_PROXY
+        value: edge
+
+      # 3. HTTP Configuration
+      # Enables HTTP and sets the port Keycloak listens on inside the container.
+      - key: KC_HTTP_ENABLED
+        value: "true"
+      - key: KC_HTTP_PORT
+        value: "8080"
