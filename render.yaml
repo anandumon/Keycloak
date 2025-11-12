@@ -6,26 +6,42 @@ services:
     region: singapore
     branch: main
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /realms/master
     autoDeploy: true
+    healthCheckPath: /realms/master
+
     envVars:
       # --- Hostname Configuration ---
       - key: KC_HOSTNAME
-        value: ${keycloak.url}
+        value: my-keycloak.onrender.com
       - key: KC_HOSTNAME_STRICT
-        value: "true"
-
-      # --- Proxy Configuration ---
+        value: "false"
+      - key: KC_HOSTNAME_STRICT_HTTPS
+        value: "false"
       - key: KC_PROXY
         value: edge
 
-      # --- HTTP Configuration ---
-      - key: KC_HTTP_ENABLED
-        value: "true"
+      # --- Database Configuration ---
+      - key: KC_DB
+        value: postgres
+      - key: KC_DB_URL
+        value: jdbc:postgresql://dpg-d49ftdili9vc739qt6p0-a.singapore-postgres.render.com:5432/bank_account
+      - key: KC_DB_USERNAME
+        value: admin
+      - key: KC_DB_PASSWORD
+        value: wnt6r0wK5pieOXOX8XWSTIlAZjuEyeNv
+      - key: KC_DB_URL_PROPERTIES
+        value: ssl=true
+
+      # --- Admin User ---
+      - key: KEYCLOAK_ADMIN
+        value: admin
+      - key: KEYCLOAK_ADMIN_PASSWORD
+        value: admin123
+
+      # --- Miscellaneous ---
       - key: KC_HTTP_PORT
         value: "8080"
-
-      # --- Cache Configuration ---
-      # Use a local cache stack to prevent clustering issues on a single instance.
+      - key: KC_LOG_LEVEL
+        value: info
       - key: KC_CACHE_STACK
         value: local
