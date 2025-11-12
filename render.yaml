@@ -9,25 +9,23 @@ services:
     healthCheckPath: /realms/master
     autoDeploy: true
     envVars:
-      # --- Runtime Settings ---
-      # These are set here because they are not secrets.
-
-      # 1. Hostname Configuration (This is the fix)
-      # Tells Keycloak its public URL. `${keycloak.url}` is a Render variable.
+      # --- Hostname Configuration ---
       - key: KC_HOSTNAME
         value: ${keycloak.url}
-      # Enforces that requests match the configured hostname. This is required when KC_PROXY=edge.
       - key: KC_HOSTNAME_STRICT
         value: "true"
 
-      # 2. Proxy Configuration
-      # Tells Keycloak it's behind Render's reverse proxy.
+      # --- Proxy Configuration ---
       - key: KC_PROXY
         value: edge
 
-      # 3. HTTP Configuration
-      # Enables HTTP and sets the port Keycloak listens on inside the container.
+      # --- HTTP Configuration ---
       - key: KC_HTTP_ENABLED
         value: "true"
       - key: KC_HTTP_PORT
         value: "8080"
+
+      # --- Cache Configuration ---
+      # Use a local cache stack to prevent clustering issues on a single instance.
+      - key: KC_CACHE_STACK
+        value: local
